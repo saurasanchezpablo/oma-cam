@@ -23,8 +23,11 @@ Item {
 
   readonly property string helper: decodeURIComponent(Qt.resolvedUrl("bin/droidcam-helper.sh").toString().replace(/^file:\/\//, ""))
   // Owner-only runtime dir; the cache dir when there is none.
-  readonly property string runtimeDir: (Quickshell.env("XDG_RUNTIME_DIR") || ((Quickshell.env("XDG_CACHE_HOME") || (Quickshell.env("HOME") + "/.cache")))) + "/droidcam-omarchy"
-  readonly property string previewPath: runtimeDir + "/preview.jpg"
+  // Preview frames are camera pictures: they only ever live in the owner-only
+  // runtime dir, and there is no preview without one.
+  readonly property string runtimeBase: Quickshell.env("XDG_RUNTIME_DIR") || ""
+  readonly property bool previewAvailable: runtimeBase !== ""
+  readonly property string previewPath: previewAvailable ? runtimeBase + "/droidcam-omarchy/preview.jpg" : ""
 
   // ---------- Settings ----------
   //
@@ -150,6 +153,9 @@ Item {
 
   Component.onDestruction: {
     alive = false
+    // Unloaded while the preview ran: delete the frame (a detached process,
+    // since this object's children are going away).
+    if (previewing) Quickshell.execDetached(["bash", helper, "forget", previewPath])
     if (runner.running) runner.signal(15)
   }
 
@@ -503,7 +509,7 @@ Item {
     interval: 2000
     repeat: true
     triggeredOnStart: true
-    running: root.popupOpen && root.cfg.preview && root.live && root.device !== ""
+    running: root.popupOpen && root.cfg.preview && root.previewAvailable && root.live && root.device !== ""
     onTriggered: root.grabPreview()
   }
 

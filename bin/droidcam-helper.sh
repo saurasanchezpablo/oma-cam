@@ -390,9 +390,9 @@ private_dir() {
   chmod 700 -- "$dir" 2>/dev/null
 }
 
-# Only the plugin's own preview file, by name.
+# Only the plugin's own preview file, in the owner-only runtime dir.
 preview_file() {
-  [[ $(basename -- "$1") == preview.jpg && $(basename -- "$(dirname -- "$1")") == droidcam-omarchy ]]
+  [[ -n ${XDG_RUNTIME_DIR:-} && $1 == "$XDG_RUNTIME_DIR/droidcam-omarchy/preview.jpg" ]]
 }
 
 cmd_snapshot() {

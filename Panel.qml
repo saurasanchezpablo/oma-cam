@@ -274,7 +274,8 @@ Panel {
             anchors.centerIn: parent
             visible: !(root.svc && root.svc.previewOk)
             textFormat: Text.PlainText
-            text: root.svc && root.svc.doctor.ffmpeg === false ? "Preview needs ffmpeg" : "Loading preview…"
+            text: root.svc && !root.svc.previewAvailable ? "Preview needs a private runtime folder (XDG_RUNTIME_DIR)"
+              : root.svc && root.svc.doctor.ffmpeg === false ? "Preview needs ffmpeg" : "Loading preview…"
             color: root.fg
             opacity: 0.6
             font.family: root.fontFamily

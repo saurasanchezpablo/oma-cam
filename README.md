@@ -137,7 +137,7 @@ All settings are in the popup. They are stored in the widget's entry in
 | `onDemand`, `idleStop` | `false`, `60` | Stream only while in use; seconds to keep going after the last app closes the camera |
 | `notify` | `true` | Connected, disconnected, setup problems |
 | `hideWhenOff` | `false` | Hide the icon while not streaming |
-| `preview` | `false` | Picture in the popup, every 2 s while it is open (needs ffmpeg) |
+| `preview` | `false` | Picture in the popup, every 2 s while it is open (needs ffmpeg and `XDG_RUNTIME_DIR`); never kept after the popup closes |
 | `cliPath` | `""` | Path to `droidcam-cli` if it is not on `PATH` |
 
 ## Troubleshooting

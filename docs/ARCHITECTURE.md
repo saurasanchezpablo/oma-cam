@@ -102,14 +102,17 @@ in `Model.js` and again in the helper before use. There are no secrets anywhere.
 ## Preview
 
 With Preview on, `helper snapshot` grabs one frame with ffmpeg every 2 seconds while
-the popup is open. Frames are camera pictures, so they go to
-`$XDG_RUNTIME_DIR/droidcam-omarchy/preview.jpg` (the cache dir only when there is no
-runtime dir): the folder is created mode 700 and refused if it is a symlink or not
-ours, the file is written with umask 077, and `helper forget` deletes it as soon as the
-popup closes or preview stops. At every start the service also runs `helper cleanup`,
-which deletes any frame an earlier run or version left in either location (runtime or
-cache folder), locks the folder down to 700, and removes it when empty; it does not
-follow symlinks or touch folders it does not own.
+the popup is open. Frames are camera pictures, so they only ever go to
+`$XDG_RUNTIME_DIR/droidcam-omarchy/preview.jpg`; without a runtime dir there is no
+preview, and the helper refuses any other path. The folder is created mode 700 and
+refused if it is a symlink or not ours, and the file is written with umask 077.
+
+Nothing is kept: `helper forget` deletes the frame as soon as the popup closes or
+preview stops, and the service does it too when it is unloaded mid-preview (plugin
+disabled or shell restarted). At every start the service runs `helper cleanup`, which
+deletes any frame an earlier run or version left in the runtime folder or in the
+cache folder older versions used, locks the folder down to 700, and removes it when
+empty; it does not follow symlinks or touch folders it does not own.
 
 ## Only while in use
 
