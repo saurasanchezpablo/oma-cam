@@ -14,7 +14,8 @@
 #   release <pids...>         ask these DroidCam clients to quit
 #   doctor <mode> <host> <port> <device> <cli>
 #                             full setup check
-#   snapshot <device> <file>  grab one frame (needs ffmpeg)
+#   snapshot <device> <file>  grab one frame into a private dir (needs ffmpeg)
+#   forget <file>             delete the preview frame
 #   import                    settings from the DroidCam app's config
 set -u
 
@@ -379,19 +380,40 @@ cmd_doctor() {
   while IFS= read -r line; do [[ -n $line ]] && echo "other=$line"; done < <(other_clients 0)
 }
 
+# The preview frames are camera pictures: keep them in a directory only we
+# can enter, never in one that is a symlink or belongs to someone else.
+private_dir() {
+  local dir=$1
+  ( umask 077 && mkdir -p -- "$dir" ) 2>/dev/null || return 1
+  [[ -d $dir && ! -L $dir && -O $dir ]] || return 1
+  chmod 700 -- "$dir" 2>/dev/null
+}
+
+# Only the plugin's own preview file, by name.
+preview_file() {
+  [[ $(basename -- "$1") == preview.jpg && $(basename -- "$(dirname -- "$1")") == droidcam-omarchy ]]
+}
+
 cmd_snapshot() {
   local device=$1 file=$2
   command -v ffmpeg >/dev/null 2>&1 || { echo "ok=0"; return; }
-  [[ -c $device ]] || { echo "ok=0"; return; }
-  mkdir -p "$(dirname "$file")"
+  [[ -c $device ]] && preview_file "$file" || { echo "ok=0"; return; }
+  private_dir "$(dirname -- "$file")" || { echo "ok=0"; return; }
+  umask 077
   if timeout 5 ffmpeg -nostdin -loglevel error -y -f v4l2 -i "$device" \
       -frames:v 1 -vf "scale=320:-2" -q:v 6 "$file.tmp.jpg" 2>/dev/null; then
-    mv -f "$file.tmp.jpg" "$file"
+    mv -f -- "$file.tmp.jpg" "$file"
     echo "ok=1"
   else
-    rm -f "$file.tmp.jpg"
+    rm -f -- "$file.tmp.jpg"
     echo "ok=0"
   fi
+}
+
+# Deletes the preview picture (the popup closed, or preview was turned off).
+cmd_forget() {
+  preview_file "$1" || return 0
+  rm -f -- "$1" "$1.tmp.jpg"
 }
 
 cmd_import() {
@@ -419,6 +441,7 @@ case $command in
   release) cmd_release "$@" ;;
   doctor) cmd_doctor "${1:-auto}" "${2:-}" "${3:-4747}" "${4:-}" "${5:-droidcam-cli}" ;;
   snapshot) cmd_snapshot "${1:-}" "${2:-}" ;;
+  forget) cmd_forget "${1:-}" ;;
   import) cmd_import ;;
-  *) echo "usage: droidcam-helper.sh <run|check|phone|put|consumers|others|release|doctor|snapshot|import> ..." >&2; exit 2 ;;
+  *) echo "usage: droidcam-helper.sh <run|check|phone|put|consumers|others|release|doctor|snapshot|forget|import> ..." >&2; exit 2 ;;
 esac

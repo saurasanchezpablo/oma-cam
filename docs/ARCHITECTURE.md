@@ -99,6 +99,15 @@ All requests are short `curl` runs from the helper: 64 KB replies at most, 4 sec
 3 to connect, plain http, no redirects. Hosts, ports and control paths are checked
 in `Model.js` and again in the helper before use. There are no secrets anywhere.
 
+## Preview
+
+With Preview on, `helper snapshot` grabs one frame with ffmpeg every 2 seconds while
+the popup is open. Frames are camera pictures, so they go to
+`$XDG_RUNTIME_DIR/droidcam-omarchy/preview.jpg` (the cache dir only when there is no
+runtime dir): the folder is created mode 700 and refused if it is a symlink or not
+ours, the file is written with umask 077, and `helper forget` deletes it as soon as the
+popup closes or preview stops.
+
 ## Only while in use
 
 `helper consumers /dev/videoN` lists the processes of the current user that have the

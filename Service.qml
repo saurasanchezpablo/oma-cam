@@ -505,6 +505,14 @@ Item {
   }
 
   property bool previewBusy: false
+  readonly property bool previewing: previewTimer.running
+
+  // No camera picture is kept once nobody is looking at it.
+  onPreviewingChanged: {
+    if (previewing) return
+    previewOk = false
+    helperCall(["forget", previewPath], function() {})
+  }
 
   function grabPreview() {
     if (previewBusy) return

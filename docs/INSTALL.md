@@ -166,8 +166,9 @@ omarchy plugin remove io.github.saurasanchezpablo.droidcam
 
 This disables the plugin, which stops the stream and removes the bar icon and its
 settings, then deletes the plugin folder (`~/.config/omarchy/plugins/io.github.saurasanchezpablo.droidcam`).
-The plugin leaves nothing else behind except a preview picture in
-`$XDG_RUNTIME_DIR/droidcam-omarchy`, which is cleared at logout.
+The plugin leaves nothing else behind: the optional preview picture lives in a
+private folder (`$XDG_RUNTIME_DIR/droidcam-omarchy`) and is deleted as soon as the popup
+closes.
 
 The DroidCam client, the driver and the phone app are separate; uninstall them with
 your package manager or the official uninstaller if you no longer need them.
