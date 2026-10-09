@@ -69,7 +69,10 @@ same address; over USB any open stream. An idle DroidCam window does not block.
 
 Retries are one-shot timers: 3, 5, 10, 20, 40, 60, then every 120 seconds; 2 seconds
 after a lost stream; 120 seconds for problems the user has to fix. Opening the popup
-retries at once. Nothing else runs while the camera is off or waiting.
+retries at once, and so does an event while waiting: `udevadm monitor` (a USB or video
+device added) and `ip monitor address route` (the network changed, Wi-Fi modes only).
+Both monitors sleep until the kernel reports something, run only while waiting, and
+quit with the shell (`setpriv --pdeathsig`).
 
 ## Controls
 
@@ -109,7 +112,7 @@ without root.
 | Situation | Background work |
 |---|---|
 | Off | nothing |
-| Waiting, blocked, setup | one `check` per retry (backing off to 2 minutes) |
+| Waiting, blocked, setup | one `check` per retry (backing off to 2 minutes); the idle udev and network monitors |
 | Live | the helper's loop: one `find` every 5 seconds |
 | Standby (on-demand) | one `consumers` every 15 seconds |
 | Popup open | phone status every 15 s, camera users every 5 s, preview every 2 s if enabled |

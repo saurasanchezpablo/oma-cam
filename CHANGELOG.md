@@ -8,6 +8,8 @@ First release.
   USB (adb); Auto prefers USB when a phone is plugged in.
 - Detects a dead stream (droidcam-cli keeps running when it ends) and reconnects,
   backing off from 3 seconds to 2 minutes while the phone is away.
+- Retries at once when a phone is plugged in, a camera device appears, or the
+  network changes.
 - Waits while another DroidCam client streams from the same phone, or closes it with
   Take over.
 - Bar icon with the camera state; middle click connects or disconnects, right click

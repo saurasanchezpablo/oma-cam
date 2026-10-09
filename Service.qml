@@ -367,6 +367,44 @@ Item {
     scheduleRetry(why)
   }
 
+  // ---------- Retry on events ----------
+  //
+  // While waiting for the phone, a plugged-in device or a network change
+  // retries at once instead of at the next back-off step. Both monitors sleep
+  // until the kernel reports something, and run only while waiting.
+  readonly property bool watchEvents: wanted && !runner.running
+    && (camState === "waiting" || camState === "blocked" || camState === "setup")
+
+  Process {
+    id: deviceWatch
+    running: root.watchEvents
+    command: ["setpriv", "--pdeathsig", "TERM", "--", "udevadm", "monitor", "--udev", "--subsystem-match=usb", "--subsystem-match=video4linux"]
+    stdout: SplitParser {
+      onRead: function(line) { if (/\sadd\s/.test(line)) eventRetry.restart() }
+    }
+  }
+
+  Process {
+    id: networkWatch
+    running: root.watchEvents && (root.cfg.mode === "wifi" || root.cfg.mode === "auto") && root.cfg.host !== ""
+    command: ["setpriv", "--pdeathsig", "TERM", "--", "ip", "-o", "monitor", "address", "route"]
+    stdout: SplitParser {
+      onRead: function(line) { eventRetry.restart() }
+    }
+  }
+
+  Timer {
+    // Events come in bursts; wait for them to settle (the phone's app also
+    // needs a moment after USB enumeration).
+    id: eventRetry
+    interval: 3000
+    onTriggered: {
+      if (!root.watchEvents || root.checking) return
+      root.attempts = 0
+      root.attempt()
+    }
+  }
+
   // ---------- Controls ----------
 
   // Zoom, focus, torch, mirror and flip go to droidcam-cli's stdin, which
