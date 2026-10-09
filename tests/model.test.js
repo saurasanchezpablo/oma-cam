@@ -82,8 +82,17 @@ test("blockers come before connecting", () => {
   const cfg = M.settingsFrom({ host: "192.168.1.50", mode: "wifi" })
   const base = { cli: "1", device: "/dev/video0", access: "1", other: [], wifi: "1" }
   assert.equal(M.plan(cfg, { ...base, cli: "0" }).reason, "noCli")
-  assert.equal(M.plan(cfg, { ...base, other: ["droidcam"] }).state, "blocked")
-  assert.equal(M.plan(M.settingsFrom({ host: "192.168.1.50", takeOver: true }), { ...base, other: ["droidcam"] }).action, "start")
+  const streaming = ["4242|droidcam|192.168.1.50:4747"]
+  assert.equal(M.plan(cfg, { ...base, other: streaming }).state, "blocked")
+  const takeOver = M.plan(M.settingsFrom({ host: "192.168.1.50", mode: "wifi", takeOver: true }), { ...base, other: streaming })
+  assert.equal(takeOver.action, "release")
+  assert.deepEqual(plain(takeOver.pids), [4242])
+  // Idle, or streaming from another phone: no conflict over Wi-Fi.
+  assert.equal(M.plan(cfg, { ...base, other: ["4242|droidcam|"] }).action, "start")
+  assert.equal(M.plan(cfg, { ...base, other: ["4242|droidcam|192.168.1.77:4747"] }).action, "start")
+  // Over USB any open stream counts.
+  const usb = M.plan(M.settingsFrom({ mode: "adb" }), { ...base, adb: "1", adb_state: "device", other: ["4242|droidcam-cli|127.0.0.1:4747"] })
+  assert.equal(usb.state, "blocked")
   assert.equal(M.plan(cfg, { cli: "1", device_missing: "", other: [] }).reason, "noDevice")
   assert.equal(M.plan(cfg, { ...base, access: "0" }).reason, "noAccess")
 })
@@ -157,7 +166,10 @@ test("saved phones", () => {
 
 test("setup check rows", () => {
   const cfg = M.settingsFrom({ host: "192.168.1.50", mode: "wifi" })
-  const rows = M.doctorRows(M.parseKv("cli=/usr/bin/droidcam-cli\ncurl=1\nmodule_dc=1\ndevice=/dev/video0\naccess=1\nvideo_group=1\nwifi=0\nother=droidcam\n"), cfg)
+  const rows = M.doctorRows(M.parseKv("cli=/usr/bin/droidcam-cli\ncurl=1\nmodule_dc=1\ndevice=/dev/video0\naccess=1\nvideo_group=1\nwifi=0\nother=10|droidcam|192.168.1.50:4747\nother=11|droidcam|\n"), cfg)
   const failed = rows.filter((r) => !r.ok).map((r) => r.label)
-  assert.deepEqual(plain(failed), ["Phone answers on 192.168.1.50:4747", "Other DroidCam client running: droidcam"])
+  assert.deepEqual(plain(failed), ["Phone answers on 192.168.1.50:4747", "Another client is using this phone: droidcam"])
+  const elsewhere = M.doctorRows(M.parseKv("other=10|droidcam|192.168.1.77:4747\n"), cfg)
+  assert.ok(elsewhere.some((r) => r.ok && r.label === "Another client is streaming from a different phone: droidcam"))
+  assert.ok(rows.some((r) => r.ok && r.label === "Another client is open but idle: droidcam"))
 })

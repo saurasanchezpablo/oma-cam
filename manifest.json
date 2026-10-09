@@ -1,0 +1,164 @@
+{
+  "schemaVersion": 1,
+  "id": "io.github.saurasanchezpablo.droidcam",
+  "name": "DroidCam",
+  "version": "0.1.0",
+  "author": "saurasanchezpablo",
+  "license": "MIT",
+  "description": "Use your phone as a webcam with DroidCam: connects at login over Wi-Fi or USB, reconnects when the stream drops, and puts zoom, focus, torch, mirror and a setup check in the bar.",
+  "repository": "https://github.com/saurasanchezpablo/oma-cam",
+  "kinds": [
+    "service",
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "service": "Service.qml",
+    "barWidget": "Panel.qml"
+  },
+  "barWidget": {
+    "displayName": "DroidCam",
+    "description": "Phone webcam status and controls. Left click for details, controls and settings, middle click to connect or disconnect, right click to reconnect.",
+    "category": "Devices",
+    "aliases": ["droidcam", "webcam", "camera", "phone camera"],
+    "allowMultiple": false,
+    "defaultSection": "right",
+    "defaults": {
+      "mode": "auto",
+      "host": "",
+      "port": 4747,
+      "device": "",
+      "size": "640x480",
+      "hflip": false,
+      "vflip": false,
+      "audio": false,
+      "autoConnect": true,
+      "takeOver": false,
+      "onDemand": false,
+      "idleStop": 60,
+      "notify": true,
+      "hideWhenOff": false,
+      "preview": false,
+      "cliPath": "",
+      "phones": []
+    },
+    "schema": [
+      {
+        "key": "mode",
+        "type": "enum",
+        "label": "Connection",
+        "description": "auto: USB when a phone is plugged in, Wi-Fi otherwise · wifi · ios (iPhone over USB, needs usbmuxd) · adb (Android over USB, needs adb).",
+        "options": ["auto", "wifi", "ios", "adb"],
+        "defaultValue": "auto"
+      },
+      {
+        "key": "host",
+        "type": "string",
+        "label": "Phone address",
+        "description": "The Wi-Fi IP shown in the DroidCam app, e.g. 192.168.1.50.",
+        "defaultValue": ""
+      },
+      {
+        "key": "port",
+        "type": "integer",
+        "label": "Port",
+        "description": "The DroidCam port shown in the app.",
+        "min": 1,
+        "max": 65535,
+        "step": 1,
+        "defaultValue": 4747
+      },
+      {
+        "key": "device",
+        "type": "string",
+        "label": "Camera device",
+        "description": "The loopback device to write to, e.g. /dev/video0. Automatic when empty (the DroidCam driver first).",
+        "defaultValue": ""
+      },
+      {
+        "key": "size",
+        "type": "enum",
+        "label": "Resolution",
+        "description": "Only used with plain v4l2loopback; the DroidCam driver sets its own size.",
+        "options": ["640x480", "960x720", "1280x720", "1920x1080"],
+        "defaultValue": "640x480"
+      },
+      {
+        "key": "hflip",
+        "type": "boolean",
+        "label": "Mirror",
+        "defaultValue": false
+      },
+      {
+        "key": "vflip",
+        "type": "boolean",
+        "label": "Flip vertically",
+        "defaultValue": false
+      },
+      {
+        "key": "audio",
+        "type": "boolean",
+        "label": "Audio",
+        "description": "Also use the phone as a microphone (needs the snd-aloop module).",
+        "defaultValue": false
+      },
+      {
+        "key": "autoConnect",
+        "type": "boolean",
+        "label": "Connect at login",
+        "defaultValue": true
+      },
+      {
+        "key": "takeOver",
+        "type": "boolean",
+        "label": "Take over",
+        "description": "Close another running DroidCam client (the DroidCam app window or droidcam-cli) instead of waiting for it.",
+        "defaultValue": false
+      },
+      {
+        "key": "onDemand",
+        "type": "boolean",
+        "label": "Only while in use",
+        "description": "Stream only while an app has the camera open, to save the phone's battery.",
+        "defaultValue": false
+      },
+      {
+        "key": "idleStop",
+        "type": "integer",
+        "label": "Stop after idle (seconds)",
+        "description": "With 'Only while in use': how long to keep streaming after the last app closes the camera.",
+        "min": 15,
+        "max": 3600,
+        "step": 15,
+        "defaultValue": 60
+      },
+      {
+        "key": "notify",
+        "type": "boolean",
+        "label": "Notifications",
+        "description": "When the camera connects, disconnects, or needs setup.",
+        "defaultValue": true
+      },
+      {
+        "key": "hideWhenOff",
+        "type": "boolean",
+        "label": "Hide when off",
+        "description": "Hide the bar icon while the camera is not streaming. Use 'omarchy-shell shell toggle io.github.saurasanchezpablo.droidcam' to open it.",
+        "defaultValue": false
+      },
+      {
+        "key": "preview",
+        "type": "boolean",
+        "label": "Preview",
+        "description": "A small picture in the popup, refreshed every 2 seconds while it is open. Needs ffmpeg.",
+        "defaultValue": false
+      },
+      {
+        "key": "cliPath",
+        "type": "string",
+        "label": "droidcam-cli path",
+        "description": "Only if droidcam-cli is not on PATH.",
+        "defaultValue": ""
+      }
+    ]
+  }
+}

@@ -328,12 +328,41 @@ function cliArgs(cfg, mode, device) {
   return args
 }
 
+// Other DroidCam clients from "pid|name|peer" records.
+function parseOthers(list) {
+  var out = []
+  list = list || []
+  for (var i = 0; i < list.length; i++) {
+    var parts = String(list[i]).split("|")
+    var pid = Number(parts[0])
+    if (!(pid > 0)) continue
+    out.push({ pid: pid, name: parts[1] || "droidcam", peer: parts[2] || "" })
+  }
+  return out
+}
+
+function peerHost(peer) {
+  var i = String(peer).lastIndexOf(":")
+  return (i > 0 ? peer.slice(0, i) : peer).replace(/^\[|\]$/g, "")
+}
+
+// The clients that hold the phone this connection would use. One that is
+// idle (no stream open) does not block. Over Wi-Fi only a stream to the same
+// phone counts; over USB any open stream does, since the phone is the
+// plugged-in one.
+function conflicting(others, mode, cfg) {
+  return others.filter(function(o) {
+    if (o.peer === "") return false
+    if (mode === "wifi") return peerHost(o.peer) === cfg.host
+    return true
+  })
+}
+
 // Decides what to do with the result of `helper check`.
 // Returns { action: "start", mode, device } or
 //         { action: "wait", state: "setup"|"waiting"|"blocked", reason }.
 function plan(cfg, kv) {
   if (kv.cli !== "1") return wait("setup", "noCli")
-  if ((kv.other || []).length > 0 && !cfg.takeOver) return wait("blocked", "otherClient")
   if (kv.device_missing !== undefined) return wait("setup", "noDevice")
   if (kv.access === "0") return wait("setup", "noAccess")
   var device = kv.device || ""
@@ -358,6 +387,11 @@ function plan(cfg, kv) {
     if (kv.adb_state === "unauthorized") return wait("waiting", "adbUnauthorized")
     if (kv.adb_state === "offline") return wait("waiting", "adbOffline")
     if (kv.adb_state !== "device") return wait("waiting", "noUsb")
+  }
+  var blockers = conflicting(parseOthers(kv.other), mode, cfg)
+  if (blockers.length > 0) {
+    if (!cfg.takeOver) return wait("blocked", "otherClient")
+    return { action: "release", mode: mode, device: device, pids: blockers.map(function(o) { return o.pid }) }
   }
   return { action: "start", mode: mode, device: device }
 }
@@ -463,8 +497,15 @@ function doctorRows(kv, cfg) {
     else row(kv.wifi === "1", "Phone answers on " + cfg.host + ":" + cfg.port, reasonHint("notReachable"))
   }
   if (cfg.audio) row(kv.module_aloop === "1", "snd-aloop loaded (audio)", "Load the snd-aloop module for DroidCam audio.")
-  var others = unique(kv.other || [])
-  if (others.length > 0) row(false, "Other DroidCam client running: " + others.join(", "), reasonHint("otherClient"))
+  var others = parseOthers(kv.other)
+  var mode = cfg.mode === "auto" ? (kv.ios_attached === "1" || kv.android_attached === "1" ? "usb" : "wifi") : cfg.mode
+  var blockers = conflicting(others, mode, cfg)
+  for (var i = 0; i < others.length; i++) {
+    var o = others[i]
+    if (blockers.indexOf(o) >= 0) row(false, "Another client is using this phone: " + o.name, reasonHint("otherClient"))
+    else if (o.peer !== "") row(true, "Another client is streaming from a different phone: " + o.name, "")
+    else row(true, "Another client is open but idle: " + o.name, "")
+  }
   return rows
 }
 
@@ -522,7 +563,7 @@ if (typeof module !== "undefined") {
     parseBattery: parseBattery, parseCameras: parseCameras, parseCameraInfo: parseCameraInfo,
     phoneFrom: phoneFrom, classifyError: classifyError, isSetupReason: isSetupReason,
     reasonTitle: reasonTitle, reasonHint: reasonHint, apiHost: apiHost, cliArgs: cliArgs,
-    plan: plan, retryDelay: retryDelay, controlKey: controlKey, proPath: proPath,
+    parseOthers: parseOthers, conflicting: conflicting, plan: plan, retryDelay: retryDelay, controlKey: controlKey, proPath: proPath,
     stateLabel: stateLabel, stateIcon: stateIcon, modeLabel: modeLabel, batteryText: batteryText,
     doctorRows: doctorRows, importPatch: importPatch, addPhone: addPhone, removePhone: removePhone,
     isCurrentPhone: isCurrentPhone, escapeMarkup: escapeMarkup

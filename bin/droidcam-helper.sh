@@ -11,7 +11,7 @@
 #   put <host> <port> <path>  one camera control request (HTTP PUT)
 #   consumers <device> <pids> apps that have the camera open
 #   others <ownpid>           other DroidCam clients running
-#   release <ownpid>          ask other DroidCam clients to quit
+#   release <pids...>         ask these DroidCam clients to quit
 #   doctor <mode> <host> <port> <device> <cli>
 #                             full setup check
 #   snapshot <device> <file>  grab one frame (needs ffmpeg)
@@ -119,13 +119,17 @@ adb_state() {
 
 # ---------- Processes ----------
 
-# Other droidcam / droidcam-cli processes of this user, except our own.
+# Other droidcam / droidcam-cli processes of this user, except our own, as
+# "pid|name|peer": peer is the host:port of its open TCP stream, or empty
+# when it is idle (or streaming over USB through usbmuxd).
 other_clients() {
-  local own=${1:-0} pid comm
+  local own=${1:-0} pid comm peer streams=""
+  command -v ss >/dev/null 2>&1 && streams=$(ss -Htnp state established 2>/dev/null)
   for pid in $(pgrep -u "$(id -u)" -x 'droidcam|droidcam-cli' 2>/dev/null); do
     [[ $pid == "$own" ]] && continue
     comm=$(cat "/proc/$pid/comm" 2>/dev/null) || continue
-    printf '%s %s\n' "$pid" "$comm"
+    peer=$(awk -v p="pid=$pid," 'index($0, p) { print $4; exit }' <<<"$streams")
+    printf '%s|%s|%s\n' "$pid" "$comm" "$peer"
   done
 }
 
@@ -151,14 +155,15 @@ cmd_run() {
   local parent=$PPID child
   local -a argv
   mapfile -t argv < <(cli_argv "$cli")
+  # Line-buffered stdout, so "Video: /dev/videoN" arrives at once.
+  command -v stdbuf >/dev/null 2>&1 && argv=(stdbuf -oL "${argv[@]}")
+  # If this script is killed outright (the shell unloading the plugin), the
+  # client gets SIGINT instead of holding on to the phone.
+  command -v setpriv >/dev/null 2>&1 && argv=(setpriv --pdeathsig INT -- "${argv[@]}")
   # Background jobs get /dev/null as stdin unless it is redirected
   # explicitly; the control keys arrive on our stdin.
   exec 3<&0
-  if command -v stdbuf >/dev/null 2>&1; then
-    stdbuf -oL "${argv[@]}" "$@" <&3 &
-  else
-    "${argv[@]}" "$@" <&3 &
-  fi
+  "${argv[@]}" "$@" <&3 &
   child=$!
   exec 3<&-
   echo "@pid $child"
@@ -216,11 +221,8 @@ cmd_check() {
   local mode=$1 host=$2 port=$3 device=$4 cli=$5 own=${6:-0}
   if have_cli "$cli"; then echo "cli=1"; else echo "cli=0"; fi
 
-  local others
-  others=$(other_clients "$own" | head -n 5)
-  if [[ -n $others ]]; then
-    while read -r pid comm; do echo "other=$comm"; done <<<"$others"
-  fi
+  local line
+  while IFS= read -r line; do [[ -n $line ]] && echo "other=$line"; done < <(other_clients "$own" | head -n 5)
 
   if [[ -n $device ]]; then
     if [[ -c $device ]]; then echo "device=$device"; else echo "device_missing=$device"; fi
@@ -306,14 +308,32 @@ cmd_consumers() {
 }
 
 cmd_others() {
-  other_clients "${1:-0}" | while read -r pid comm; do echo "other=$comm"; done
+  local line
+  while IFS= read -r line; do echo "other=$line"; done < <(other_clients "${1:-0}")
 }
 
+# Asks the given DroidCam clients to quit: SIGINT (droidcam-cli's clean
+# exit), then SIGTERM after 2 seconds. Only pids that are still droidcam
+# processes of this user are touched.
 cmd_release() {
-  local pid comm
-  other_clients "${1:-0}" | while read -r pid comm; do
-    kill -INT "$pid" 2>/dev/null && echo "released=$comm"
+  local pid line i alive targets=()
+  for pid in "$@"; do
+    [[ $pid =~ ^[0-9]+$ ]] || continue
+    while IFS= read -r line; do
+      if [[ ${line%%|*} == "$pid" ]]; then
+        kill -INT "$pid" 2>/dev/null && targets+=("$pid") && echo "released=$(cut -d'|' -f2 <<<"$line")"
+      fi
+    done < <(other_clients 0)
   done
+  (( ${#targets[@]} )) || return 0
+  for i in 1 2 3 4 5 6 7 8 9 10; do
+    alive=0
+    for pid in "${targets[@]}"; do kill -0 "$pid" 2>/dev/null && alive=1; done
+    (( alive )) || return 0
+    sleep 0.2
+  done
+  for pid in "${targets[@]}"; do kill -TERM "$pid" 2>/dev/null; done
+  return 0
 }
 
 cmd_doctor() {
@@ -356,7 +376,7 @@ cmd_doctor() {
       echo "wifi=0"
     fi
   fi
-  other_clients 0 | while read -r pid comm; do echo "other=$comm"; done
+  while IFS= read -r line; do [[ -n $line ]] && echo "other=$line"; done < <(other_clients 0)
 }
 
 cmd_snapshot() {
@@ -396,7 +416,7 @@ case $command in
   put) cmd_put "${1:-}" "${2:-4747}" "${3:-}" ;;
   consumers) cmd_consumers "${1:-}" "${2:-}" ;;
   others) cmd_others "${1:-0}" ;;
-  release) cmd_release "${1:-0}" ;;
+  release) cmd_release "$@" ;;
   doctor) cmd_doctor "${1:-auto}" "${2:-}" "${3:-4747}" "${4:-}" "${5:-droidcam-cli}" ;;
   snapshot) cmd_snapshot "${1:-}" "${2:-}" ;;
   import) cmd_import ;;
