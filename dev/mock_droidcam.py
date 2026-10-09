@@ -21,7 +21,7 @@ Scenarios:
   flood      endless HTTP replies (checks the size limits)
   lowbat     like free, battery at 9 % and discharging
 
-Run:  python3 dev/mock_droidcam.py [--port 4848] [--scenario free]
+Run:  python3 dev/mock_droidcam.py [--port 4848] [--scenario free] [--name "Mock Phone"]
 """
 
 import argparse
@@ -52,6 +52,7 @@ CONTROLS = {1: "exposure lock off", 2: "exposure lock on", 3: "white balance",
 
 state = {
     "scenario": "free",
+    "name": "Mock Phone",
     "torch": False,
     "zoom": 1.0,
     "ev": 0.0,
@@ -188,7 +189,7 @@ class Handler(socketserver.BaseRequestHandler):
             if path == "/":
                 return self.reply(sock, 302, "text/plain", "", {"Location": "/remote"})
             if path == "/v1/phone/name":
-                return self.reply(sock, 200, "text/plain", "Mock Phone")
+                return self.reply(sock, 200, "text/plain", state["name"])
             if path == "/v1/phone/battery_info":
                 level, st = (9, -1) if scenario == "lowbat" else (82, 1)
                 return self.reply(sock, 200, "text/json", json.dumps({"level": level, "state": st}))
@@ -244,8 +245,10 @@ def main():
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=4848)
     parser.add_argument("--scenario", default="free")
+    parser.add_argument("--name", default="Mock Phone", help="phone name the app reports")
     args = parser.parse_args()
     state["scenario"] = args.scenario
+    state["name"] = args.name
     with Server((args.host, args.port), Handler) as server:
         log(f"listening on {args.host}:{args.port}, scenario {args.scenario}")
         try:
