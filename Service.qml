@@ -22,7 +22,8 @@ Item {
   property bool alive: true
 
   readonly property string helper: decodeURIComponent(Qt.resolvedUrl("bin/droidcam-helper.sh").toString().replace(/^file:\/\//, ""))
-  readonly property string runtimeDir: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/droidcam-omarchy"
+  // Owner-only runtime dir; the cache dir when there is none.
+  readonly property string runtimeDir: (Quickshell.env("XDG_RUNTIME_DIR") || ((Quickshell.env("XDG_CACHE_HOME") || (Quickshell.env("HOME") + "/.cache")))) + "/droidcam-omarchy"
   readonly property string previewPath: runtimeDir + "/preview.jpg"
 
   // ---------- Settings ----------
