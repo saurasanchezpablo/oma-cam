@@ -22,7 +22,8 @@ First release.
   with fixes.
 - Only while in use: stream only while an app has the camera open.
 - Saved phones, import from the DroidCam desktop app, optional preview and audio.
-  The preview picture is kept in a private folder and deleted when the popup closes.
+  The preview picture is kept in a private folder and deleted when the popup closes;
+  frames left by an earlier run are removed at startup.
 - Notifications when the camera connects, disconnects or needs setup.
 - IPC: status, connect, disconnect, reconnect, toggle, control, set, doctor,
   importSettings, configure.

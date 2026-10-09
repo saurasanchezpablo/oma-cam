@@ -16,6 +16,7 @@
 #                             full setup check
 #   snapshot <device> <file>  grab one frame into a private dir (needs ffmpeg)
 #   forget <file>             delete the preview frame
+#   cleanup                   delete preview frames left from earlier runs
 #   import                    settings from the DroidCam app's config
 set -u
 
@@ -416,6 +417,21 @@ cmd_forget() {
   rm -f -- "$1" "$1.tmp.jpg"
 }
 
+# At startup: delete preview frames left by an earlier run or version, in both
+# places the preview can live, and lock those folders down. Earlier versions
+# could leave a world-readable frame in the cache folder.
+cmd_cleanup() {
+  local dir
+  for dir in ${XDG_RUNTIME_DIR:+"$XDG_RUNTIME_DIR/droidcam-omarchy"} \
+      "${XDG_CACHE_HOME:-$HOME/.cache}/droidcam-omarchy"; do
+    [[ -d $dir && ! -L $dir && -O $dir ]] || continue
+    chmod 700 -- "$dir" 2>/dev/null
+    rm -f -- "$dir/preview.jpg" "$dir/preview.jpg.tmp.jpg"
+    rmdir -- "$dir" 2>/dev/null
+  done
+  return 0
+}
+
 cmd_import() {
   local file=${XDG_CONFIG_HOME:-$HOME/.config}/droidcam
   [[ -f $file ]] || { echo "found=0"; return; }
@@ -442,6 +458,7 @@ case $command in
   doctor) cmd_doctor "${1:-auto}" "${2:-}" "${3:-4747}" "${4:-}" "${5:-droidcam-cli}" ;;
   snapshot) cmd_snapshot "${1:-}" "${2:-}" ;;
   forget) cmd_forget "${1:-}" ;;
+  cleanup) cmd_cleanup ;;
   import) cmd_import ;;
-  *) echo "usage: droidcam-helper.sh <run|check|phone|put|consumers|others|release|doctor|snapshot|forget|import> ..." >&2; exit 2 ;;
+  *) echo "usage: droidcam-helper.sh <run|check|phone|put|consumers|others|release|doctor|snapshot|forget|cleanup|import> ..." >&2; exit 2 ;;
 esac

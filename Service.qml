@@ -145,6 +145,9 @@ Item {
     }
   }
 
+  // Remove preview frames an earlier run or version may have left behind.
+  Component.onCompleted: helperCall(["cleanup"], function() {})
+
   Component.onDestruction: {
     alive = false
     if (runner.running) runner.signal(15)
