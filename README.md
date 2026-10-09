@@ -28,33 +28,12 @@ Omarchy bar.
 | Preview (optional) | `ffmpeg` |
 | Audio (optional) | the `snd-aloop` kernel module |
 | Better device detection (optional) | `v4l-utils` (`v4l2-ctl`) |
+| Used when present | `setpriv`, `stdbuf`, `ss`, `udevadm`, `ip` (util-linux, coreutils, iproute2, systemd: on every Omarchy install) |
 
-On Arch, the `droidcam` package from the AUR brings the client and the
-`v4l2loopback-dc` driver. On other distributions use the installer from
-[droidcam.app/linux](https://droidcam.app/linux/).
-
-### Loading the driver at boot
-
-The DroidCam installer usually sets this up. If the setup check says the loopback
-driver is not loaded, these steps need administrator rights:
-
-```
-# /etc/modules-load.d/droidcam.conf
-v4l2loopback_dc
-```
-
-```
-# /etc/modprobe.d/droidcam.conf (the camera size; 640x480 is the default)
-options v4l2loopback_dc width=1280 height=720
-```
-
-Then reboot, or load the module once with `modprobe v4l2loopback_dc` as root.
-
-With plain `v4l2loopback` instead, the device must accept the YU12 format; the
-plugin's Resolution setting then picks the size.
-
-Your user must be able to open the device: on most systems that means being in the
-`video` group.
+On Arch, CachyOS and Omarchy, the `droidcam` package from the AUR brings the client
+and the `v4l2loopback-dc` driver. On other distributions use the installer from
+[droidcam.app/linux](https://droidcam.app/linux/). The [install guide](docs/INSTALL.md)
+covers loading the driver, permissions, and the USB extras step by step.
 
 ## Install
 
@@ -62,7 +41,20 @@ Your user must be able to open the device: on most systems that means being in t
 omarchy plugin add https://github.com/saurasanchezpablo/oma-cam.git --enable
 ```
 
-The icon appears in the right section of the bar. Move it with `omarchy bar move`.
+The icon appears in the right section of the bar
+(`omarchy bar move io.github.saurasanchezpablo.droidcam --section center` moves it).
+
+Update with `omarchy plugin update io.github.saurasanchezpablo.droidcam`.
+
+## Remove
+
+```bash
+omarchy plugin remove io.github.saurasanchezpablo.droidcam
+```
+
+This stops the stream, removes the icon and its settings, and deletes the plugin
+folder. The DroidCam client and driver stay installed; remove them separately if you
+no longer need them.
 
 ## Setup
 
