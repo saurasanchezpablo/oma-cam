@@ -3,6 +3,8 @@
 Use your phone as a webcam with [DroidCam](https://droidcam.app), straight from the
 Omarchy bar.
 
+![The DroidCam popup: live status, camera controls, setup check and settings (demo data)](preview.png)
+
 - **Connects at login** over Wi-Fi or USB (iPhone and Android), and **reconnects** by
   itself when the stream drops or the phone comes back.
 - **Camera controls** in the popup: zoom, autofocus, torch, mirror and flip. With
