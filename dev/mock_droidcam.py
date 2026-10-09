@@ -81,16 +81,17 @@ def camera_info():
 class Handler(socketserver.BaseRequestHandler):
     def handle(self):
         sock = self.request
-        scenario = state["scenario"]
-        if scenario == "hang":
-            time.sleep(60)
-            return
         sock.settimeout(10)
         try:
             data = sock.recv(4096)
         except OSError:
             return
         if not data:
+            return
+        # Hang on everything except scenario changes, so the mock can be
+        # switched back.
+        if state["scenario"] == "hang" and b"/mock/scenario/" not in data.split(b"\r\n", 1)[0]:
+            time.sleep(60)
             return
         if data.startswith(b"CMD "):
             self.video(sock, data.decode("latin-1"))
