@@ -16,7 +16,7 @@ omarchy plugin validate .             # manifest
 ## Trying it
 
 ```bash
-bash dev/install.sh                   # copy to ~/.config/omarchy/plugins/… and restart the shell
+bash dev/deploy.sh                   # copy to ~/.config/omarchy/plugins/… and restart the shell
 omarchy plugin enable io.github.saurasanchezpablo.droidcam
 ```
 

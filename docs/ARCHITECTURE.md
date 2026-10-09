@@ -11,7 +11,7 @@
 | `bin/droidcam-helper.sh` | Every system check and the stream supervisor. The shell runs it with `bash`, so it needs no exec bit. |
 | `dev/mock_droidcam.py` | Fake phone app: HTTP API and video protocol, switchable scenarios. |
 | `dev/fake_droidcam_cli.py` | Stand-in for `droidcam-cli` that talks to the mock and never opens a video device. |
-| `dev/install.sh` | Copies the plugin into `~/.config/omarchy/plugins/` and restarts the shell. |
+| `dev/deploy.sh` | Copies the plugin into `~/.config/omarchy/plugins/` and restarts the shell. |
 
 ## Why a service and a widget
 
@@ -121,7 +121,7 @@ without root.
 
 - `console.log` from third-party plugins does not reach the shell log: use the
   `status` IPC.
-- Hot reload keeps compiled QML: `bash dev/install.sh` restarts the shell.
+- Hot reload keeps compiled QML: `bash dev/deploy.sh` restarts the shell.
 - `shell.json` is written a moment after a settings change; restarting the shell
   right after `configure` can lose the change.
 - Arrays from `shell.json` are not real JS arrays: `Model.toArray()`.
